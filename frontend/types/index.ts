@@ -114,8 +114,8 @@ export interface LoginInput {
 export interface RegisterInput {
   email: string;
   password: string;
-  firstName?: string;
-  lastName?: string;
+  firstName: string;
+  lastName: string;
   organizationName: string;
 }
 
@@ -217,6 +217,8 @@ export interface InputProps extends BaseComponentProps {
   label?: string;
   options?: { value: string; label: string }[];
   onChange: (value: string) => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+  autoComplete?: string;
 }
 
 export interface ModalProps extends BaseComponentProps {

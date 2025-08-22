@@ -27,21 +27,79 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    // Don't redirect while still loading
-    if (isLoading) return;
+  console.log(
+    "ProtectedRoute render - isLoading:",
+    isLoading,
+    "isAuthenticated:",
+    isAuthenticated,
+    "user:",
+    user
+  );
 
-    // Redirect if not authenticated
-    if (!isAuthenticated || !user) {
+  useEffect(() => {
+    console.log(
+      "ProtectedRoute useEffect - isLoading:",
+      isLoading,
+      "isAuthenticated:",
+      isAuthenticated,
+      "user:",
+      user
+    );
+
+    // Don't redirect while still loading
+    if (isLoading) {
+      console.log("ProtectedRoute: Still loading, waiting...");
+      return;
+    }
+
+    // Check if user is authenticated via AuthContext OR localStorage (fallback)
+    const hasTokens =
+      typeof window !== "undefined" && localStorage.getItem("accessToken");
+    const hasStoredUser =
+      typeof window !== "undefined" && localStorage.getItem("userData");
+
+    console.log(
+      "ProtectedRoute: hasTokens:",
+      !!hasTokens,
+      "hasStoredUser:",
+      !!hasStoredUser
+    );
+
+    // Redirect if not authenticated (check both AuthContext and localStorage)
+    if (!isAuthenticated && !hasTokens) {
+      console.log(
+        "ProtectedRoute: Not authenticated, redirecting to:",
+        redirectTo
+      );
       router.push(redirectTo);
       return;
     }
 
-    // Redirect if organization is required but user doesn't have one
-    if (requireOrganization && !user.organization) {
+    // If AuthContext says not authenticated but localStorage has tokens,
+    // wait a bit more for initialization to complete
+    if (!isAuthenticated && hasTokens) {
+      console.log(
+        "ProtectedRoute: AuthContext not ready but tokens exist, waiting..."
+      );
+      return;
+    }
+
+    // Check organization requirement (only if we have a user)
+    const currentUser =
+      user ||
+      (hasStoredUser
+        ? JSON.parse(localStorage.getItem("userData") || "{}")
+        : null);
+
+    if (requireOrganization && currentUser && !currentUser.organization) {
+      console.log(
+        "ProtectedRoute: Organization required but user has none, redirecting to /organization/setup"
+      );
       router.push("/organization/setup");
       return;
     }
+
+    console.log("ProtectedRoute: All checks passed, allowing access");
   }, [
     isLoading,
     isAuthenticated,

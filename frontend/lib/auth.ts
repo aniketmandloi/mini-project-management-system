@@ -131,7 +131,23 @@ export const jwtUtils = {
    */
   decodeToken(token: string): Record<string, unknown> | null {
     try {
-      const base64Url = token.split(".")[1];
+      // Handle mock tokens for development/demo (only if they're actually mock tokens)
+      if (token === "mock-access-token" || token === "mock-refresh-token") {
+        return {
+          sub: "1",
+          email: "demo@example.com",
+          iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 hours from now
+        };
+      }
+
+      // Handle real JWT tokens
+      const parts = token.split(".");
+      if (parts.length !== 3) {
+        throw new Error("Invalid JWT format");
+      }
+
+      const base64Url = parts[1];
       const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
       const jsonPayload = decodeURIComponent(
         atob(base64)

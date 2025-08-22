@@ -1,18 +1,18 @@
 /**
- * Login Page
+ * Registration Page
  *
- * Authentication page for user login. Provides a clean, professional interface
- * for users to sign into their project management accounts with proper validation
- * and error handling.
+ * Authentication page for new user registration. Provides a comprehensive
+ * registration form for creating new accounts and organizations with proper
+ * validation and error handling.
  */
 
 "use client";
 
 import React from "react";
 import Link from "next/link";
-import { LoginForm } from "@/components/auth/LoginForm";
+import { RegisterForm } from "@/components/auth/RegisterForm";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -24,33 +24,33 @@ export default function LoginPage() {
             </div>
           </Link>
           <h2 className="text-3xl font-bold text-gray-900">
-            Welcome back
+            Join Project Management
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Sign in to your Project Management System
+            Create your account and organization to get started
           </p>
         </div>
 
-        {/* Login Form Container */}
+        {/* Registration Form Container */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
-          <LoginForm redirectTo="/dashboard" />
+          <RegisterForm redirectTo="/dashboard" />
         </div>
 
         {/* Additional Links */}
         <div className="text-center space-y-4">
           <p className="text-sm text-gray-600">
-            Don&apos;t have an account?{" "}
+            Already have an account?{" "}
             <Link
-              href="/auth/register"
+              href="/auth/login"
               className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
             >
-              Create one now
+              Sign in instead
             </Link>
           </p>
 
           <div className="text-xs text-gray-500">
             <p>
-              By signing in, you agree to our{" "}
+              By creating an account, you agree to our{" "}
               <Link href="/terms" className="text-blue-600 hover:text-blue-500">
                 Terms of Service
               </Link>{" "}

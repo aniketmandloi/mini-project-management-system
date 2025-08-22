@@ -28,13 +28,25 @@ export function useAuth(options: UseAuthArgs = {}) {
   const loginWithRedirect = useCallback(
     async (input: LoginInput): Promise<void> => {
       try {
+        console.log("loginWithRedirect: Starting login...");
         await authContext.login(input);
+        console.log(
+          "loginWithRedirect: Login completed, waiting for state to propagate..."
+        );
+
+        // Wait a moment for the authentication state to propagate
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
         // Get redirect URL or use default
         const redirectUrl =
           authNavigation.getLoginRedirect() || redirectOnSuccess;
-        router.push(redirectUrl);
+        console.log("loginWithRedirect: Redirecting to:", redirectUrl);
+
+        // Use window.location.href instead of router.push to avoid HMR interference
+        window.location.href = redirectUrl;
+        console.log("loginWithRedirect: window.location.href called");
       } catch (error) {
+        console.error("loginWithRedirect: Error during login:", error);
         throw error;
       }
     },

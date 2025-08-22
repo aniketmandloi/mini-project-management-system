@@ -7,17 +7,19 @@ import { gql } from "@apollo/client";
 
 // Authentication Mutations
 export const LOGIN_MUTATION = gql`
-  mutation Login($email: String!, $password: String!) {
-    login(email: $email, password: $password) {
-      tokens {
-        accessToken
-        refreshToken
-      }
+  mutation Login($input: LoginInput!) {
+    login(input: $input) {
+      success
+      errors
+      accessToken
+      refreshToken
+      expiresAt
       user {
         id
         email
         firstName
         lastName
+        fullName
         isActive
         organization {
           id
@@ -32,29 +34,19 @@ export const LOGIN_MUTATION = gql`
 `;
 
 export const REGISTER_MUTATION = gql`
-  mutation Register(
-    $email: String!
-    $password: String!
-    $firstName: String!
-    $lastName: String!
-    $organizationName: String!
-  ) {
-    register(
-      email: $email
-      password: $password
-      firstName: $firstName
-      lastName: $lastName
-      organizationName: $organizationName
-    ) {
-      tokens {
-        accessToken
-        refreshToken
-      }
+  mutation Register($input: RegisterInput!) {
+    register(input: $input) {
+      success
+      errors
+      accessToken
+      refreshToken
+      expiresAt
       user {
         id
         email
         firstName
         lastName
+        fullName
         isActive
         organization {
           id

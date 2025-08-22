@@ -12,6 +12,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
+import { useMutation } from "@apollo/client/react";
 import { clearCache } from "../lib/apollo";
 import {
   authUtils,
@@ -19,6 +20,12 @@ import {
   userManager,
   tokenRefresh,
 } from "../lib/auth";
+import {
+  LOGIN_MUTATION,
+  REGISTER_MUTATION,
+  LOGOUT_MUTATION,
+  REFRESH_TOKEN_MUTATION,
+} from "../graphql/mutations";
 import type {
   User,
   AuthContextType,
@@ -46,6 +53,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Apollo mutations
+  const [loginMutation] = useMutation(LOGIN_MUTATION);
+  const [registerMutation] = useMutation(REGISTER_MUTATION);
+  const [logoutMutation] = useMutation(LOGOUT_MUTATION);
+  const [refreshTokenMutation] = useMutation(REFRESH_TOKEN_MUTATION);
 
   /**
    * Refresh authentication tokens
@@ -134,6 +147,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
    * Initialize authentication state on app load
    */
   const initializeAuth = useCallback(async () => {
+    console.log("AuthContext: Initializing auth...");
     try {
       setIsLoading(true);
 
@@ -180,78 +194,80 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         setIsLoading(true);
 
-        // For now, we'll implement a simple fetch-based login
-        // This will be replaced with proper GraphQL mutations later
-        const response = await fetch(
-          process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT ||
-            "http://localhost:8000/graphql/",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
+        const result = await loginMutation({
+          variables: {
+            input: {
+              email: input.email,
+              password: input.password,
             },
-            body: JSON.stringify({
-              query: `
-            mutation Login($email: String!, $password: String!) {
-              login(email: $email, password: $password) {
-                tokens {
-                  accessToken
-                  refreshToken
-                }
-                user {
-                  id
-                  email
-                  firstName
-                  lastName
-                  isActive
-                  organization {
-                    id
-                    name
-                    slug
-                    contactEmail
-                    createdAt
-                  }
-                }
-              }
-            }
-          `,
-              variables: {
-                email: input.email,
-                password: input.password,
-              },
-            }),
+          },
+        });
+
+        console.log("Login mutation result:", result);
+
+        const { data } = result;
+
+        if ((data as any)?.login) {
+          const loginResult = (data as any).login;
+          console.log("Login result:", loginResult);
+
+          if (loginResult.success) {
+            console.log("Login success - setting up user data...");
+            const tokens = {
+              accessToken: loginResult.accessToken,
+              refreshToken: loginResult.refreshToken,
+            };
+            const userData = loginResult.user;
+
+            // Store authentication data
+            console.log("Storing auth data:", tokens, userData);
+            authUtils.setAuthData(tokens, userData);
+            setUser(userData);
+            console.log("User set successfully");
+
+            // Debug: Check if tokens are actually stored
+            console.log(
+              "Stored accessToken:",
+              localStorage.getItem("accessToken")
+            );
+            console.log("Stored user:", localStorage.getItem("user"));
+
+            // Setup token refresh
+            console.log("Setting up token refresh...");
+            setupTokenRefresh();
+
+            // Clear any existing Apollo cache to avoid stale data
+            console.log("Clearing Apollo cache...");
+            await clearCache();
+            console.log("Login completed successfully!");
+          } else {
+            throw new Error(loginResult.errors?.join(", ") || "Login failed");
           }
-        );
-
-        if (!response.ok) {
-          throw new Error("Network error");
+        } else {
+          console.error("Login failed - full result:", result);
+          throw new Error("Login failed - no data received");
         }
-
-        const data = await response.json();
-
-        if (data.errors) {
-          throw new Error(data.errors[0].message);
-        }
-
-        const { tokens, user: userData } = data.data.login;
-
-        // Store authentication data
-        authUtils.setAuthData(tokens, userData);
-        setUser(userData);
-
-        // Setup token refresh
-        setupTokenRefresh();
-
-        // Clear any existing Apollo cache to avoid stale data
-        await clearCache();
-      } catch (error) {
+      } catch (error: any) {
         console.error("Login error:", error);
-        throw error;
+
+        // Handle GraphQL errors
+        if (error.graphQLErrors && error.graphQLErrors.length > 0) {
+          const graphQLError = error.graphQLErrors[0];
+          throw new Error(graphQLError.message || "Login failed");
+        } else if (error.networkError) {
+          throw new Error(
+            "Network error. Please check your connection and try again."
+          );
+        } else if (error.message) {
+          throw new Error(error.message);
+        } else {
+          throw new Error("An unexpected error occurred during login");
+        }
       } finally {
         setIsLoading(false);
       }
     },
-    [setupTokenRefresh]
+    [loginMutation, setupTokenRefresh]
   );
 
   /**
@@ -262,93 +278,72 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         setIsLoading(true);
 
-        // For now, we'll implement a simple fetch-based register
-        // This will be replaced with proper GraphQL mutations later
-        const response = await fetch(
-          process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT ||
-            "http://localhost:8000/graphql/",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
+        const result = await registerMutation({
+          variables: {
+            input: {
+              email: input.email,
+              password: input.password,
+              firstName: input.firstName,
+              lastName: input.lastName,
+              // For now, we'll register without organization_id and let backend handle it
+              // Later we can add organization creation flow
             },
-            body: JSON.stringify({
-              query: `
-            mutation Register(
-              $email: String!
-              $password: String!
-              $firstName: String!
-              $lastName: String!
-              $organizationName: String!
-            ) {
-              register(
-                email: $email
-                password: $password
-                firstName: $firstName
-                lastName: $lastName
-                organizationName: $organizationName
-              ) {
-                tokens {
-                  accessToken
-                  refreshToken
-                }
-                user {
-                  id
-                  email
-                  firstName
-                  lastName
-                  isActive
-                  organization {
-                    id
-                    name
-                    slug
-                    contactEmail
-                    createdAt
-                  }
-                }
-              }
-            }
-          `,
-              variables: {
-                email: input.email,
-                password: input.password,
-                firstName: input.firstName,
-                lastName: input.lastName,
-                organizationName: input.organizationName,
-              },
-            }),
+          },
+        });
+
+        console.log("Register mutation result:", result);
+
+        const { data } = result;
+
+        if ((data as any)?.register) {
+          const registerResult = (data as any).register;
+
+          if (registerResult.success) {
+            const tokens = {
+              accessToken: registerResult.accessToken,
+              refreshToken: registerResult.refreshToken,
+            };
+            const userData = registerResult.user;
+
+            // Store authentication data
+            authUtils.setAuthData(tokens, userData);
+            setUser(userData);
+          } else {
+            throw new Error(
+              registerResult.errors?.join(", ") || "Registration failed"
+            );
           }
-        );
 
-        if (!response.ok) {
-          throw new Error("Network error");
+          // Setup token refresh
+          setupTokenRefresh();
+
+          // Clear any existing Apollo cache
+          await clearCache();
+        } else {
+          console.error("Registration failed - full result:", result);
+          throw new Error("Registration failed - no data received");
         }
-
-        const data = await response.json();
-
-        if (data.errors) {
-          throw new Error(data.errors[0].message);
-        }
-
-        const { tokens, user: userData } = data.data.register;
-
-        // Store authentication data
-        authUtils.setAuthData(tokens, userData);
-        setUser(userData);
-
-        // Setup token refresh
-        setupTokenRefresh();
-
-        // Clear any existing Apollo cache
-        await clearCache();
-      } catch (error) {
+      } catch (error: any) {
         console.error("Registration error:", error);
-        throw error;
+
+        // Handle GraphQL errors
+        if (error.graphQLErrors && error.graphQLErrors.length > 0) {
+          const graphQLError = error.graphQLErrors[0];
+          throw new Error(graphQLError.message || "Registration failed");
+        } else if (error.networkError) {
+          throw new Error(
+            "Network error. Please check your connection and try again."
+          );
+        } else if (error.message) {
+          throw new Error(error.message);
+        } else {
+          throw new Error("An unexpected error occurred during registration");
+        }
       } finally {
         setIsLoading(false);
       }
     },
-    [setupTokenRefresh]
+    [registerMutation, setupTokenRefresh]
   );
 
   /**

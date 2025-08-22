@@ -52,8 +52,9 @@ const authLink = setContext((_, { headers }) => {
  */
 const errorLink = onError((errorHandler) => {
   // Handle GraphQL errors
-  if ((errorHandler as any).graphQLErrors) {
-    (errorHandler as any).graphQLErrors.forEach((error: GraphQLError) => {
+  const handler = errorHandler as unknown as Record<string, unknown>;
+  if (handler.graphQLErrors && Array.isArray(handler.graphQLErrors)) {
+    handler.graphQLErrors.forEach((error: GraphQLError) => {
       console.error(
         `GraphQL error: Message: ${error.message}, Location: ${error.locations}, Path: ${error.path}`
       );
@@ -78,12 +79,16 @@ const errorLink = onError((errorHandler) => {
   }
 
   // Handle network errors
-  const networkError = (errorHandler as any).networkError;
+  const networkError = handler.networkError;
   if (networkError) {
     console.error("Network error:", networkError);
 
     // Handle specific network error cases
-    if ("statusCode" in networkError) {
+    if (
+      networkError &&
+      typeof networkError === "object" &&
+      "statusCode" in networkError
+    ) {
       const statusCode = (networkError as Error & { statusCode?: number })
         .statusCode;
       switch (statusCode) {

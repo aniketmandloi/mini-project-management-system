@@ -76,6 +76,11 @@ function isValidToken(token: string): boolean {
 }
 
 export function middleware(request: NextRequest) {
+  // TEMPORARILY DISABLED - Using client-side ProtectedRoute instead
+  // The middleware can't access localStorage tokens from server-side
+  return NextResponse.next();
+
+  /* ORIGINAL CODE - DISABLED
   const { pathname } = request.nextUrl;
   const token = getAuthToken(request);
   const isAuthenticated = token ? isValidToken(token) : false;
@@ -121,6 +126,7 @@ export function middleware(request: NextRequest) {
 
   // For all other routes, continue normally
   return NextResponse.next();
+  */
 }
 
 // Configure which routes the middleware should run on
