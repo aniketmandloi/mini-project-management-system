@@ -20,17 +20,14 @@ admin.site.index_title = "Welcome to Project Management System Administration"
 
 urlpatterns = [
     # Admin interface
-    path('admin/', admin.site.urls),
-    
+    path("admin/", admin.site.urls),
     # GraphQL endpoint
-    path('graphql/', csrf_exempt(GraphQLView.as_view(graphiql=settings.DEBUG))),
-    
+    path("graphql/", csrf_exempt(GraphQLView.as_view(graphiql=settings.DEBUG))),
     # API endpoints
-    path('api/auth/', include('accounts.urls')),
-    path('api/core/', include('core.urls')),
-    
+    path("api/auth/", include("accounts.urls")),
+    path("api/core/", include("core.urls")),
     # Health check endpoint
-    path('health/', include('core.health_urls')),
+    path("health/", include("core.health_urls")),
 ]
 
 # Serve media files in development
