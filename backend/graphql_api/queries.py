@@ -1,8 +1,9 @@
 """
-GraphQL query definitions.
+GraphQL query definitions with organization-based data isolation.
 
 This module defines all GraphQL queries for the project management system,
-including queries for organizations, projects, tasks, and analytics.
+including queries for organizations, projects, tasks, and analytics with
+proper multi-tenant data isolation and access control.
 """
 
 import graphene
@@ -11,6 +12,13 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q, Count, Avg
 from graphql import GraphQLError
 from core.models import Organization, Project, Task, TaskComment
+from core.context import GraphQLContext
+from core.permissions import (
+    require_permission,
+    IsAuthenticated,
+    IsOrganizationMember,
+    filter_queryset_by_organization,
+)
 from .types import (
     UserType,
     OrganizationType,
@@ -107,31 +115,47 @@ class Query(graphene.ObjectType):
     )
 
     # User resolvers
+    @require_permission(IsAuthenticated)
     def resolve_me(self, info):
         """Get the current authenticated user."""
         return get_user_from_context(info)
 
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def resolve_users(self, info):
         """Get all users in the current organization."""
         organization = get_organization_from_context(info)
-        return User.objects.filter(organization=organization).order_by(
+        if not organization:
+            raise GraphQLError("Organization context required")
+
+        queryset = User.objects.filter(organization=organization)
+        return filter_queryset_by_organization(queryset, organization).order_by(
             "first_name", "last_name"
         )
 
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def resolve_user(self, info, id):
         """Get a specific user by ID within the current organization."""
         organization = get_organization_from_context(info)
+        if not organization:
+            raise GraphQLError("Organization context required")
+
         try:
-            return User.objects.get(id=id, organization=organization)
+            queryset = User.objects.filter(organization=organization)
+            return filter_queryset_by_organization(queryset, organization).get(id=id)
         except User.DoesNotExist:
             raise GraphQLError(f"User with ID {id} not found")
 
     # Organization resolvers
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def resolve_organization(self, info):
         """Get the current organization."""
-        return get_organization_from_context(info)
+        organization = get_organization_from_context(info)
+        if not organization:
+            raise GraphQLError("Organization context required")
+        return organization
 
     # Project resolvers
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def resolve_projects(
         self,
         info,
@@ -143,7 +167,11 @@ class Query(graphene.ObjectType):
     ):
         """Get projects with filtering, sorting, and pagination."""
         organization = get_organization_from_context(info)
+        if not organization:
+            raise GraphQLError("Organization context required")
+
         queryset = Project.objects.filter(organization=organization)
+        queryset = filter_queryset_by_organization(queryset, organization)
 
         # Apply filters
         if filters:
@@ -191,15 +219,21 @@ class Query(graphene.ObjectType):
             "total_count": total_count,
         }
 
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def resolve_project(self, info, id):
         """Get a specific project by ID within the current organization."""
         organization = get_organization_from_context(info)
+        if not organization:
+            raise GraphQLError("Organization context required")
+
         try:
-            return Project.objects.get(id=id, organization=organization)
+            queryset = Project.objects.filter(organization=organization)
+            return filter_queryset_by_organization(queryset, organization).get(id=id)
         except Project.DoesNotExist:
             raise GraphQLError(f"Project with ID {id} not found")
 
     # Task resolvers
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def resolve_tasks(
         self,
         info,
@@ -211,7 +245,11 @@ class Query(graphene.ObjectType):
     ):
         """Get tasks with filtering, sorting, and pagination."""
         organization = get_organization_from_context(info)
+        if not organization:
+            raise GraphQLError("Organization context required")
+
         queryset = Task.objects.filter(project__organization=organization)
+        queryset = filter_queryset_by_organization(queryset, organization)
 
         # Apply filters
         if filters:
@@ -263,26 +301,40 @@ class Query(graphene.ObjectType):
             "total_count": total_count,
         }
 
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def resolve_task(self, info, id):
         """Get a specific task by ID within the current organization."""
         organization = get_organization_from_context(info)
+        if not organization:
+            raise GraphQLError("Organization context required")
+
         try:
-            return Task.objects.get(id=id, project__organization=organization)
+            queryset = Task.objects.filter(project__organization=organization)
+            return filter_queryset_by_organization(queryset, organization).get(id=id)
         except Task.DoesNotExist:
             raise GraphQLError(f"Task with ID {id} not found")
 
     # Task comment resolvers
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def resolve_task_comments(self, info, task_id, first=20, after=None):
         """Get comments for a specific task with pagination."""
         organization = get_organization_from_context(info)
+        if not organization:
+            raise GraphQLError("Organization context required")
 
         # Verify task belongs to the organization
         try:
-            task = Task.objects.get(id=task_id, project__organization=organization)
+            task_queryset = Task.objects.filter(project__organization=organization)
+            task = filter_queryset_by_organization(task_queryset, organization).get(
+                id=task_id
+            )
         except Task.DoesNotExist:
             raise GraphQLError(f"Task with ID {task_id} not found")
 
-        queryset = TaskComment.objects.filter(task=task).order_by("-created_at")
+        queryset = TaskComment.objects.filter(task=task)
+        queryset = filter_queryset_by_organization(queryset, organization).order_by(
+            "-created_at"
+        )
 
         # Apply pagination (simplified)
         total_count = queryset.count()
@@ -312,9 +364,12 @@ class Query(graphene.ObjectType):
         }
 
     # Analytics resolvers
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def resolve_organization_statistics(self, info):
         """Get comprehensive organization statistics."""
         organization = get_organization_from_context(info)
+        if not organization:
+            raise GraphQLError("Organization context required")
 
         # Project statistics
         projects = Project.objects.filter(organization=organization)
@@ -352,10 +407,16 @@ class Query(graphene.ObjectType):
             "recent_activity_count": self._get_recent_activity_count(organization),
         }
 
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def resolve_project_statistics(self, info):
         """Get project statistics for the current organization."""
         organization = get_organization_from_context(info)
-        projects = Project.objects.filter(organization=organization)
+        if not organization:
+            raise GraphQLError("Organization context required")
+
+        projects = filter_queryset_by_organization(
+            Project.objects.filter(organization=organization), organization
+        )
 
         return {
             "total_projects": projects.count(),
@@ -367,20 +428,28 @@ class Query(graphene.ObjectType):
             "completion_rate": self._calculate_project_completion_rate(projects),
         }
 
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def resolve_task_statistics(self, info, project_id=None):
         """Get task statistics (organization-wide or for specific project)."""
         organization = get_organization_from_context(info)
+        if not organization:
+            raise GraphQLError("Organization context required")
 
         if project_id:
             # Get statistics for specific project
             try:
-                project = Project.objects.get(id=project_id, organization=organization)
-                tasks = Task.objects.filter(project=project)
+                project_queryset = Project.objects.filter(organization=organization)
+                project = filter_queryset_by_organization(
+                    project_queryset, organization
+                ).get(id=project_id)
+                task_queryset = Task.objects.filter(project=project)
+                tasks = filter_queryset_by_organization(task_queryset, organization)
             except Project.DoesNotExist:
                 raise GraphQLError(f"Project with ID {project_id} not found")
         else:
             # Get organization-wide statistics
-            tasks = Task.objects.filter(project__organization=organization)
+            task_queryset = Task.objects.filter(project__organization=organization)
+            tasks = filter_queryset_by_organization(task_queryset, organization)
 
         return {
             "total_tasks": tasks.count(),

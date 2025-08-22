@@ -1,8 +1,9 @@
 """
-GraphQL mutations for CRUD operations.
+GraphQL mutations for CRUD operations with organization validation.
 
 This module defines all GraphQL mutations for creating, updating, and deleting
-organizations, projects, tasks, and comments with proper validation and permissions.
+organizations, projects, tasks, and comments with proper multi-tenant validation,
+permissions, and organization-based data isolation.
 """
 
 import graphene
@@ -12,6 +13,16 @@ from django.db import transaction
 from django.utils import timezone
 
 from core.models import Organization, Project, Task, TaskComment
+from core.permissions import (
+    require_permission,
+    IsAuthenticated,
+    IsOrganizationMember,
+    IsOrganizationAdmin,
+    CanEditProject,
+    CanEditTask,
+    CanEditComment,
+    filter_queryset_by_organization,
+)
 from .types import (
     OrganizationType,
     ProjectType,
@@ -89,6 +100,7 @@ class CreateOrganization(graphene.Mutation):
     errors = graphene.List(graphene.String)
 
     @staticmethod
+    @require_permission(IsAuthenticated)
     def mutate(root, info, input):
         """Create a new organization."""
         try:
@@ -98,6 +110,10 @@ class CreateOrganization(graphene.Mutation):
                 return CreateOrganization(success=False, errors=errors)
 
             user = get_user_from_context(info)
+            if not user:
+                return CreateOrganization(
+                    success=False, errors=["Authentication required"]
+                )
 
             # Check if slug is unique
             if Organization.objects.filter(slug=input.slug).exists():
@@ -139,11 +155,15 @@ class UpdateOrganization(graphene.Mutation):
     errors = graphene.List(graphene.String)
 
     @staticmethod
-    @require_organization_admin
+    @require_permission(IsAuthenticated, IsOrganizationMember, IsOrganizationAdmin)
     def mutate(root, info, id, input):
         """Update an existing organization."""
         try:
             organization = get_organization_from_context(info)
+            if not organization:
+                return UpdateOrganization(
+                    success=False, errors=["Organization context required"]
+                )
 
             if str(organization.id) != str(id):
                 return UpdateOrganization(
@@ -193,11 +213,15 @@ class CreateProject(graphene.Mutation):
     errors = graphene.List(graphene.String)
 
     @staticmethod
-    @require_organization_member
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def mutate(root, info, input):
         """Create a new project."""
         try:
             organization = get_organization_from_context(info)
+            if not organization:
+                return CreateProject(
+                    success=False, errors=["Organization context required"]
+                )
 
             # Validate input
             errors = validate_project_input(input)
@@ -205,9 +229,10 @@ class CreateProject(graphene.Mutation):
                 return CreateProject(success=False, errors=errors)
 
             # Check if project name is unique within organization
-            if Project.objects.filter(
+            project_queryset = Project.objects.filter(
                 organization=organization, name=input.name
-            ).exists():
+            )
+            if filter_queryset_by_organization(project_queryset, organization).exists():
                 return CreateProject(
                     success=False,
                     errors=["Project with this name already exists in organization"],
@@ -240,20 +265,28 @@ class UpdateProject(graphene.Mutation):
     errors = graphene.List(graphene.String)
 
     @staticmethod
-    @require_organization_member
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def mutate(root, info, id, input):
         """Update an existing project."""
         try:
             organization = get_organization_from_context(info)
+            if not organization:
+                return UpdateProject(
+                    success=False, errors=["Organization context required"]
+                )
 
             # Get project and verify permissions
             try:
-                project = Project.objects.get(id=id, organization=organization)
+                project_queryset = Project.objects.filter(organization=organization)
+                project = filter_queryset_by_organization(
+                    project_queryset, organization
+                ).get(id=id)
             except Project.DoesNotExist:
                 return UpdateProject(success=False, errors=["Project not found"])
 
-            # Check permissions
-            if not can_edit_project(get_user_from_context(info), project):
+            # Check permissions using new permission system
+            user = get_user_from_context(info)
+            if not CanEditProject().has_permission(user, organization, project):
                 return UpdateProject(success=False, errors=["Permission denied"])
 
             # Validate input
@@ -334,11 +367,15 @@ class CreateTask(graphene.Mutation):
     errors = graphene.List(graphene.String)
 
     @staticmethod
-    @require_organization_member
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def mutate(root, info, input):
         """Create a new task."""
         try:
             organization = get_organization_from_context(info)
+            if not organization:
+                return CreateTask(
+                    success=False, errors=["Organization context required"]
+                )
 
             # Validate input
             errors = validate_task_input(input, organization)
@@ -347,9 +384,10 @@ class CreateTask(graphene.Mutation):
 
             # Get project and verify it belongs to organization
             try:
-                project = Project.objects.get(
-                    id=input.project_id, organization=organization
-                )
+                project_queryset = Project.objects.filter(organization=organization)
+                project = filter_queryset_by_organization(
+                    project_queryset, organization
+                ).get(id=input.project_id)
             except Project.DoesNotExist:
                 return CreateTask(success=False, errors=["Project not found"])
 
@@ -381,20 +419,28 @@ class UpdateTask(graphene.Mutation):
     errors = graphene.List(graphene.String)
 
     @staticmethod
-    @require_organization_member
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def mutate(root, info, id, input):
         """Update an existing task."""
         try:
             organization = get_organization_from_context(info)
+            if not organization:
+                return UpdateTask(
+                    success=False, errors=["Organization context required"]
+                )
 
             # Get task and verify permissions
             try:
-                task = Task.objects.get(id=id, project__organization=organization)
+                task_queryset = Task.objects.filter(project__organization=organization)
+                task = filter_queryset_by_organization(task_queryset, organization).get(
+                    id=id
+                )
             except Task.DoesNotExist:
                 return UpdateTask(success=False, errors=["Task not found"])
 
-            # Check permissions
-            if not can_edit_task(get_user_from_context(info), task):
+            # Check permissions using new permission system
+            user = get_user_from_context(info)
+            if not CanEditTask().has_permission(user, organization, task):
                 return UpdateTask(success=False, errors=["Permission denied"])
 
             # Validate input
@@ -474,11 +520,16 @@ class CreateTaskComment(graphene.Mutation):
     errors = graphene.List(graphene.String)
 
     @staticmethod
-    @require_organization_member
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def mutate(root, info, input):
         """Create a new task comment."""
         try:
             organization = get_organization_from_context(info)
+            if not organization:
+                return CreateTaskComment(
+                    success=False, errors=["Organization context required"]
+                )
+
             user = get_user_from_context(info)
 
             # Validate input
@@ -488,8 +539,9 @@ class CreateTaskComment(graphene.Mutation):
 
             # Get task and verify it belongs to organization
             try:
-                task = Task.objects.get(
-                    id=input.task_id, project__organization=organization
+                task_queryset = Task.objects.filter(project__organization=organization)
+                task = filter_queryset_by_organization(task_queryset, organization).get(
+                    id=input.task_id
                 )
             except Task.DoesNotExist:
                 return CreateTaskComment(success=False, errors=["Task not found"])
@@ -519,22 +571,30 @@ class UpdateTaskComment(graphene.Mutation):
     errors = graphene.List(graphene.String)
 
     @staticmethod
-    @require_organization_member
+    @require_permission(IsAuthenticated, IsOrganizationMember)
     def mutate(root, info, id, input):
         """Update an existing task comment."""
         try:
             organization = get_organization_from_context(info)
+            if not organization:
+                return UpdateTaskComment(
+                    success=False, errors=["Organization context required"]
+                )
 
             # Get comment and verify permissions
             try:
-                comment = TaskComment.objects.get(
-                    id=id, task__project__organization=organization
+                comment_queryset = TaskComment.objects.filter(
+                    task__project__organization=organization
                 )
+                comment = filter_queryset_by_organization(
+                    comment_queryset, organization
+                ).get(id=id)
             except TaskComment.DoesNotExist:
                 return UpdateTaskComment(success=False, errors=["Comment not found"])
 
-            # Check permissions
-            if not can_edit_comment(get_user_from_context(info), comment):
+            # Check permissions using new permission system
+            user = get_user_from_context(info)
+            if not CanEditComment().has_permission(user, organization, comment):
                 return UpdateTaskComment(success=False, errors=["Permission denied"])
 
             # Validate input
