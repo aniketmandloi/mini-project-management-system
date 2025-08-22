@@ -13,7 +13,7 @@ export interface Organization {
 }
 
 // Project types
-export type ProjectStatus = 'ACTIVE' | 'COMPLETED' | 'ON_HOLD' | 'PLANNING';
+export type ProjectStatus = "ACTIVE" | "COMPLETED" | "ON_HOLD" | "PLANNING";
 
 export interface Project {
   id: string;
@@ -44,7 +44,7 @@ export interface UpdateProjectInput {
 }
 
 // Task types
-export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED";
 
 export interface Task {
   id: string;
@@ -197,18 +197,18 @@ export interface BaseComponentProps {
 }
 
 export interface ButtonProps extends BaseComponentProps {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: "primary" | "secondary" | "danger" | "ghost";
+  size?: "sm" | "md" | "lg";
   disabled?: boolean;
   loading?: boolean;
   onClick?: () => void;
-  type?: 'button' | 'submit' | 'reset';
+  type?: "button" | "submit" | "reset";
 }
 
 export interface InputProps extends BaseComponentProps {
   id: string;
   name: string;
-  type?: 'text' | 'email' | 'password' | 'textarea' | 'date' | 'select';
+  type?: "text" | "email" | "password" | "textarea" | "date" | "select";
   value: string;
   placeholder?: string;
   required?: boolean;
@@ -223,11 +223,11 @@ export interface ModalProps extends BaseComponentProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
 // Utility types
-export type LoadingState = 'idle' | 'loading' | 'success' | 'error';
+export type LoadingState = "idle" | "loading" | "success" | "error";
 
 export interface AsyncOperation<T> {
   data: T | null;

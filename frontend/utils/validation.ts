@@ -3,7 +3,7 @@
  * Provides reusable validation functions and error handling
  */
 
-import type { FormError } from '../types';
+import type { FormError } from "../types";
 
 /**
  * Email validation regex pattern
@@ -22,13 +22,13 @@ const PASSWORD_MIN_LENGTH = 8;
  */
 export function validateEmail(email: string): string | null {
   if (!email) {
-    return 'Email is required';
+    return "Email is required";
   }
-  
+
   if (!EMAIL_REGEX.test(email)) {
-    return 'Please enter a valid email address';
+    return "Please enter a valid email address";
   }
-  
+
   return null;
 }
 
@@ -39,13 +39,13 @@ export function validateEmail(email: string): string | null {
  */
 export function validatePassword(password: string): string | null {
   if (!password) {
-    return 'Password is required';
+    return "Password is required";
   }
-  
+
   if (password.length < PASSWORD_MIN_LENGTH) {
     return `Password must be at least ${PASSWORD_MIN_LENGTH} characters`;
   }
-  
+
   return null;
 }
 
@@ -58,25 +58,27 @@ export function validatePassword(password: string): string | null {
  * @returns Error message if invalid, null if valid
  */
 export function validateRequired(
-  value: string, 
-  fieldName: string, 
-  minLength = 1, 
+  value: string,
+  fieldName: string,
+  minLength = 1,
   maxLength = 1000
 ): string | null {
   if (!value || value.trim().length === 0) {
     return `${fieldName} is required`;
   }
-  
+
   const trimmedValue = value.trim();
-  
+
   if (trimmedValue.length < minLength) {
-    return `${fieldName} must be at least ${minLength} character${minLength > 1 ? 's' : ''}`;
+    return `${fieldName} must be at least ${minLength} character${
+      minLength > 1 ? "s" : ""
+    }`;
   }
-  
+
   if (trimmedValue.length > maxLength) {
     return `${fieldName} must be no more than ${maxLength} characters`;
   }
-  
+
   return null;
 }
 
@@ -88,24 +90,24 @@ export function validateRequired(
  * @returns Error message if invalid, null if valid
  */
 export function validateDate(
-  date: string, 
-  fieldName: string, 
+  date: string,
+  fieldName: string,
   requireFuture = false
 ): string | null {
   if (!date) {
     return null; // Optional field
   }
-  
+
   const parsedDate = new Date(date);
-  
+
   if (isNaN(parsedDate.getTime())) {
     return `${fieldName} must be a valid date`;
   }
-  
+
   if (requireFuture && parsedDate <= new Date()) {
     return `${fieldName} must be in the future`;
   }
-  
+
   return null;
 }
 
@@ -116,27 +118,27 @@ export function validateDate(
  */
 export function validateSlug(slug: string): string | null {
   if (!slug) {
-    return 'Organization identifier is required';
+    return "Organization identifier is required";
   }
-  
+
   const slugRegex = /^[a-z0-9-]+$/;
-  
+
   if (!slugRegex.test(slug)) {
-    return 'Organization identifier can only contain lowercase letters, numbers, and hyphens';
+    return "Organization identifier can only contain lowercase letters, numbers, and hyphens";
   }
-  
+
   if (slug.length < 2) {
-    return 'Organization identifier must be at least 2 characters';
+    return "Organization identifier must be at least 2 characters";
   }
-  
+
   if (slug.length > 50) {
-    return 'Organization identifier must be no more than 50 characters';
+    return "Organization identifier must be no more than 50 characters";
   }
-  
-  if (slug.startsWith('-') || slug.endsWith('-')) {
-    return 'Organization identifier cannot start or end with a hyphen';
+
+  if (slug.startsWith("-") || slug.endsWith("-")) {
+    return "Organization identifier cannot start or end with a hyphen";
   }
-  
+
   return null;
 }
 
@@ -146,19 +148,22 @@ export function validateSlug(slug: string): string | null {
  * @param password - Password to validate
  * @returns Array of validation errors
  */
-export function validateLoginForm(email: string, password: string): FormError[] {
+export function validateLoginForm(
+  email: string,
+  password: string
+): FormError[] {
   const errors: FormError[] = [];
-  
+
   const emailError = validateEmail(email);
   if (emailError) {
-    errors.push({ field: 'email', message: emailError });
+    errors.push({ field: "email", message: emailError });
   }
-  
+
   const passwordError = validatePassword(password);
   if (passwordError) {
-    errors.push({ field: 'password', message: passwordError });
+    errors.push({ field: "password", message: passwordError });
   }
-  
+
   return errors;
 }
 
@@ -179,32 +184,37 @@ export function validateRegistrationForm(
   organizationName: string
 ): FormError[] {
   const errors: FormError[] = [];
-  
+
   const emailError = validateEmail(email);
   if (emailError) {
-    errors.push({ field: 'email', message: emailError });
+    errors.push({ field: "email", message: emailError });
   }
-  
+
   const passwordError = validatePassword(password);
   if (passwordError) {
-    errors.push({ field: 'password', message: passwordError });
+    errors.push({ field: "password", message: passwordError });
   }
-  
-  const firstNameError = validateRequired(firstName, 'First name', 1, 50);
+
+  const firstNameError = validateRequired(firstName, "First name", 1, 50);
   if (firstNameError) {
-    errors.push({ field: 'firstName', message: firstNameError });
+    errors.push({ field: "firstName", message: firstNameError });
   }
-  
-  const lastNameError = validateRequired(lastName, 'Last name', 1, 50);
+
+  const lastNameError = validateRequired(lastName, "Last name", 1, 50);
   if (lastNameError) {
-    errors.push({ field: 'lastName', message: lastNameError });
+    errors.push({ field: "lastName", message: lastNameError });
   }
-  
-  const orgNameError = validateRequired(organizationName, 'Organization name', 2, 100);
+
+  const orgNameError = validateRequired(
+    organizationName,
+    "Organization name",
+    2,
+    100
+  );
   if (orgNameError) {
-    errors.push({ field: 'organizationName', message: orgNameError });
+    errors.push({ field: "organizationName", message: orgNameError });
   }
-  
+
   return errors;
 }
 
@@ -221,23 +231,26 @@ export function validateProjectForm(
   dueDate?: string
 ): FormError[] {
   const errors: FormError[] = [];
-  
-  const nameError = validateRequired(name, 'Project name', 2, 200);
+
+  const nameError = validateRequired(name, "Project name", 2, 200);
   if (nameError) {
-    errors.push({ field: 'name', message: nameError });
+    errors.push({ field: "name", message: nameError });
   }
-  
+
   if (description && description.length > 2000) {
-    errors.push({ field: 'description', message: 'Description must be no more than 2000 characters' });
+    errors.push({
+      field: "description",
+      message: "Description must be no more than 2000 characters",
+    });
   }
-  
+
   if (dueDate) {
-    const dateError = validateDate(dueDate, 'Due date', true);
+    const dateError = validateDate(dueDate, "Due date", true);
     if (dateError) {
-      errors.push({ field: 'dueDate', message: dateError });
+      errors.push({ field: "dueDate", message: dateError });
     }
   }
-  
+
   return errors;
 }
 
@@ -256,30 +269,33 @@ export function validateTaskForm(
   dueDate?: string
 ): FormError[] {
   const errors: FormError[] = [];
-  
-  const titleError = validateRequired(title, 'Task title', 2, 200);
+
+  const titleError = validateRequired(title, "Task title", 2, 200);
   if (titleError) {
-    errors.push({ field: 'title', message: titleError });
+    errors.push({ field: "title", message: titleError });
   }
-  
+
   if (description && description.length > 2000) {
-    errors.push({ field: 'description', message: 'Description must be no more than 2000 characters' });
+    errors.push({
+      field: "description",
+      message: "Description must be no more than 2000 characters",
+    });
   }
-  
+
   if (assigneeEmail) {
     const emailError = validateEmail(assigneeEmail);
     if (emailError) {
-      errors.push({ field: 'assigneeEmail', message: emailError });
+      errors.push({ field: "assigneeEmail", message: emailError });
     }
   }
-  
+
   if (dueDate) {
-    const dateError = validateDate(dueDate, 'Due date');
+    const dateError = validateDate(dueDate, "Due date");
     if (dateError) {
-      errors.push({ field: 'dueDate', message: dateError });
+      errors.push({ field: "dueDate", message: dateError });
     }
   }
-  
+
   return errors;
 }
 
@@ -290,12 +306,12 @@ export function validateTaskForm(
  */
 export function validateCommentForm(content: string): FormError[] {
   const errors: FormError[] = [];
-  
-  const contentError = validateRequired(content, 'Comment', 1, 1000);
+
+  const contentError = validateRequired(content, "Comment", 1, 1000);
   if (contentError) {
-    errors.push({ field: 'content', message: contentError });
+    errors.push({ field: "content", message: contentError });
   }
-  
+
   return errors;
 }
 
@@ -314,7 +330,10 @@ export function hasFormErrors(errors: FormError[]): boolean {
  * @param fieldName - Name of the field to get error for
  * @returns Error message if found, null otherwise
  */
-export function getFieldError(errors: FormError[], fieldName: string): string | null {
-  const error = errors.find(err => err.field === fieldName);
+export function getFieldError(
+  errors: FormError[],
+  fieldName: string
+): string | null {
+  const error = errors.find((err) => err.field === fieldName);
   return error ? error.message : null;
 }

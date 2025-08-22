@@ -3,8 +3,8 @@
  * Uses clsx for conditional classes and tailwind-merge for deduplication
  */
 
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 /**
  * Combines and deduplicates Tailwind CSS classes
@@ -21,22 +21,29 @@ export function cn(...inputs: ClassValue[]): string {
  * @param variants - Object mapping variant keys to classes
  * @param defaultVariants - Default variant values
  */
-export function createVariants<T extends Record<string, Record<string, string>>>(
+export function createVariants<
+  T extends Record<string, Record<string, string>>
+>(
   base: string,
   variants: T,
   defaultVariants?: Partial<{ [K in keyof T]: keyof T[K] }>
 ) {
-  return (props: Partial<{ [K in keyof T]: keyof T[K] }> & { className?: string }) => {
-    const variantClasses = Object.entries(variants).map(([variantKey, variantValues]) => {
-      const selectedVariant = props[variantKey as keyof typeof props] || 
-                             defaultVariants?.[variantKey as keyof typeof defaultVariants];
-      
-      if (selectedVariant && typeof selectedVariant === 'string') {
-        return variantValues[selectedVariant as string];
+  return (
+    props: Partial<{ [K in keyof T]: keyof T[K] }> & { className?: string }
+  ) => {
+    const variantClasses = Object.entries(variants).map(
+      ([variantKey, variantValues]) => {
+        const selectedVariant =
+          props[variantKey as keyof typeof props] ||
+          defaultVariants?.[variantKey as keyof typeof defaultVariants];
+
+        if (selectedVariant && typeof selectedVariant === "string") {
+          return variantValues[selectedVariant as string];
+        }
+
+        return "";
       }
-      
-      return '';
-    });
+    );
 
     return cn(base, ...variantClasses, props.className);
   };
@@ -49,11 +56,11 @@ export function createVariants<T extends Record<string, Record<string, string>>>
  * @param falseClass - Class to apply when false
  */
 export function conditionalClass(
-  condition: boolean, 
-  trueClass: string, 
+  condition: boolean,
+  trueClass: string,
   falseClass?: string
 ): string {
-  return condition ? trueClass : (falseClass || '');
+  return condition ? trueClass : falseClass || "";
 }
 
 /**
@@ -62,8 +69,8 @@ export function conditionalClass(
  */
 export function focusRing(color?: string): string {
   return cn(
-    'focus:outline-none focus:ring-2 focus:ring-offset-2',
-    color ? `focus:ring-${color}` : 'focus:ring-primary'
+    "focus:outline-none focus:ring-2 focus:ring-offset-2",
+    color ? `focus:ring-${color}` : "focus:ring-primary"
   );
 }
 
@@ -71,13 +78,15 @@ export function focusRing(color?: string): string {
  * Creates transition classes for common UI elements
  * @param type - Type of transition
  */
-export function transition(type: 'colors' | 'transform' | 'opacity' | 'all' = 'colors'): string {
+export function transition(
+  type: "colors" | "transform" | "opacity" | "all" = "colors"
+): string {
   const transitions = {
-    colors: 'transition-colors duration-200 ease-in-out',
-    transform: 'transition-transform duration-200 ease-in-out',
-    opacity: 'transition-opacity duration-200 ease-in-out',
-    all: 'transition-all duration-200 ease-in-out'
+    colors: "transition-colors duration-200 ease-in-out",
+    transform: "transition-transform duration-200 ease-in-out",
+    opacity: "transition-opacity duration-200 ease-in-out",
+    all: "transition-all duration-200 ease-in-out",
   };
-  
+
   return transitions[type];
 }
