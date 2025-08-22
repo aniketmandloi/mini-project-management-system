@@ -19,6 +19,12 @@ from core.permissions import (
     IsOrganizationMember,
     filter_queryset_by_organization,
 )
+from core.services import (
+    ProjectStatisticsService,
+    TaskStatisticsService,
+    UserProductivityService,
+    OrganizationAnalyticsService,
+)
 from .types import (
     UserType,
     OrganizationType,
@@ -112,6 +118,36 @@ class Query(graphene.ObjectType):
         TaskStatistics,
         project_id=graphene.ID(),
         description="Get task statistics (organization-wide or for specific project)",
+    )
+
+    # Advanced analytics queries
+    project_completion_trends = graphene.List(
+        graphene.Float,
+        days=graphene.Int(default_value=30),
+        description="Get project completion trends over specified days",
+    )
+
+    task_completion_trends = graphene.List(
+        graphene.Float,
+        days=graphene.Int(default_value=30),
+        project_id=graphene.ID(),
+        description="Get task completion trends over specified days",
+    )
+
+    user_productivity_metrics = graphene.List(
+        UserType,
+        limit=graphene.Int(default_value=10),
+        description="Get user productivity metrics ranked by activity",
+    )
+
+    project_health_score = graphene.Float(
+        project_id=graphene.ID(required=True),
+        description="Calculate project health score based on multiple factors",
+    )
+
+    comprehensive_analytics = graphene.Field(
+        graphene.String,  # JSON string containing all analytics
+        description="Get comprehensive organization analytics in JSON format",
     )
 
     # User resolvers
@@ -371,38 +407,20 @@ class Query(graphene.ObjectType):
         if not organization:
             raise GraphQLError("Organization context required")
 
-        # Project statistics
-        projects = Project.objects.filter(organization=organization)
-        project_stats = {
-            "total_projects": projects.count(),
-            "active_projects": projects.filter(status="ACTIVE").count(),
-            "completed_projects": projects.filter(status="COMPLETED").count(),
-            "on_hold_projects": projects.filter(status="ON_HOLD").count(),
-            "cancelled_projects": projects.filter(status="CANCELLED").count(),
-            "overdue_projects": self._get_overdue_projects_count(projects),
-            "completion_rate": self._calculate_project_completion_rate(projects),
-        }
+        # Use services for better organization and maintainability
+        project_service = ProjectStatisticsService(organization)
+        task_service = TaskStatisticsService(organization)
+        user_service = UserProductivityService(organization)
 
-        # Task statistics
-        tasks = Task.objects.filter(project__organization=organization)
-        task_stats = {
-            "total_tasks": tasks.count(),
-            "todo_tasks": tasks.filter(status="TODO").count(),
-            "in_progress_tasks": tasks.filter(status="IN_PROGRESS").count(),
-            "completed_tasks": tasks.filter(status="DONE").count(),
-            "overdue_tasks": self._get_overdue_tasks_count(tasks),
-            "completion_rate": self._calculate_task_completion_rate(tasks),
-            "average_completion_time": self._calculate_average_completion_time(tasks),
-        }
-
-        # User statistics
-        users = User.objects.filter(organization=organization)
+        project_stats = project_service.get_basic_project_stats()
+        task_stats = task_service.get_basic_task_stats()
+        collaboration_metrics = user_service.get_collaboration_metrics()
         most_active_users = self._get_most_active_users(organization)
 
         return {
             "project_stats": project_stats,
             "task_stats": task_stats,
-            "user_count": users.count(),
+            "user_count": User.objects.filter(organization=organization).count(),
             "most_active_users": most_active_users,
             "recent_activity_count": self._get_recent_activity_count(organization),
         }
@@ -414,19 +432,8 @@ class Query(graphene.ObjectType):
         if not organization:
             raise GraphQLError("Organization context required")
 
-        projects = filter_queryset_by_organization(
-            Project.objects.filter(organization=organization), organization
-        )
-
-        return {
-            "total_projects": projects.count(),
-            "active_projects": projects.filter(status="ACTIVE").count(),
-            "completed_projects": projects.filter(status="COMPLETED").count(),
-            "on_hold_projects": projects.filter(status="ON_HOLD").count(),
-            "cancelled_projects": projects.filter(status="CANCELLED").count(),
-            "overdue_projects": self._get_overdue_projects_count(projects),
-            "completion_rate": self._calculate_project_completion_rate(projects),
-        }
+        service = ProjectStatisticsService(organization)
+        return service.get_basic_project_stats()
 
     @require_permission(IsAuthenticated, IsOrganizationMember)
     def resolve_task_statistics(self, info, project_id=None):
@@ -436,30 +443,15 @@ class Query(graphene.ObjectType):
             raise GraphQLError("Organization context required")
 
         if project_id:
-            # Get statistics for specific project
             try:
-                project_queryset = Project.objects.filter(organization=organization)
-                project = filter_queryset_by_organization(
-                    project_queryset, organization
-                ).get(id=project_id)
-                task_queryset = Task.objects.filter(project=project)
-                tasks = filter_queryset_by_organization(task_queryset, organization)
+                project = Project.objects.get(id=project_id, organization=organization)
+                service = TaskStatisticsService(organization, project)
             except Project.DoesNotExist:
                 raise GraphQLError(f"Project with ID {project_id} not found")
         else:
-            # Get organization-wide statistics
-            task_queryset = Task.objects.filter(project__organization=organization)
-            tasks = filter_queryset_by_organization(task_queryset, organization)
+            service = TaskStatisticsService(organization)
 
-        return {
-            "total_tasks": tasks.count(),
-            "todo_tasks": tasks.filter(status="TODO").count(),
-            "in_progress_tasks": tasks.filter(status="IN_PROGRESS").count(),
-            "completed_tasks": tasks.filter(status="DONE").count(),
-            "overdue_tasks": self._get_overdue_tasks_count(tasks),
-            "completion_rate": self._calculate_task_completion_rate(tasks),
-            "average_completion_time": self._calculate_average_completion_time(tasks),
-        }
+        return service.get_basic_task_stats()
 
     # Helper methods for statistics
     def _get_overdue_projects_count(self, projects):
@@ -542,3 +534,73 @@ class Query(graphene.ObjectType):
         ).count()
 
         return recent_tasks + recent_projects + recent_comments
+
+    # Advanced analytics resolvers using services
+    @require_permission(IsAuthenticated, IsOrganizationMember)
+    def resolve_project_completion_trends(self, info, days=30):
+        """Get project completion trends over specified days."""
+        organization = get_organization_from_context(info)
+        if not organization:
+            raise GraphQLError("Organization context required")
+
+        service = ProjectStatisticsService(organization)
+        trend_data = service.get_project_completion_trend(days)
+        return [rate for date, rate in trend_data]
+
+    @require_permission(IsAuthenticated, IsOrganizationMember)
+    def resolve_task_completion_trends(self, info, days=30, project_id=None):
+        """Get task completion trends over specified days."""
+        organization = get_organization_from_context(info)
+        if not organization:
+            raise GraphQLError("Organization context required")
+
+        if project_id:
+            try:
+                project = Project.objects.get(id=project_id, organization=organization)
+                service = TaskStatisticsService(organization, project)
+            except Project.DoesNotExist:
+                raise GraphQLError(f"Project with ID {project_id} not found")
+        else:
+            service = TaskStatisticsService(organization)
+
+        trend_data = service.get_task_completion_trend(days)
+        return [rate for date, rate in trend_data]
+
+    @require_permission(IsAuthenticated, IsOrganizationMember)
+    def resolve_user_productivity_metrics(self, info, limit=10):
+        """Get user productivity metrics ranked by activity."""
+        organization = get_organization_from_context(info)
+        if not organization:
+            raise GraphQLError("Organization context required")
+
+        service = UserProductivityService(organization)
+        metrics = service.get_user_productivity_metrics(limit)
+        return [metric["user"] for metric in metrics]
+
+    @require_permission(IsAuthenticated, IsOrganizationMember)
+    def resolve_project_health_score(self, info, project_id):
+        """Calculate project health score based on multiple factors."""
+        organization = get_organization_from_context(info)
+        if not organization:
+            raise GraphQLError("Organization context required")
+
+        try:
+            project = Project.objects.get(id=project_id, organization=organization)
+        except Project.DoesNotExist:
+            raise GraphQLError(f"Project with ID {project_id} not found")
+
+        service = ProjectStatisticsService(organization)
+        return service.calculate_project_health_score(project)
+
+    @require_permission(IsAuthenticated, IsOrganizationMember)
+    def resolve_comprehensive_analytics(self, info):
+        """Get comprehensive organization analytics in JSON format."""
+        import json
+
+        organization = get_organization_from_context(info)
+        if not organization:
+            raise GraphQLError("Organization context required")
+
+        service = OrganizationAnalyticsService(organization)
+        analytics = service.get_comprehensive_analytics()
+        return json.dumps(analytics, indent=2, default=str)

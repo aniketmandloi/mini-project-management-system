@@ -307,6 +307,70 @@ class OrganizationStatistics(graphene.ObjectType):
     recent_activity_count = graphene.Int()
 
 
+class TrendDataPoint(graphene.ObjectType):
+    """
+    GraphQL type for trend data points.
+
+    Represents a single data point in trend analysis.
+    """
+
+    date = graphene.Date()
+    value = graphene.Float()
+    label = graphene.String()
+
+
+class ProductivityMetrics(graphene.ObjectType):
+    """
+    GraphQL type for user productivity metrics.
+
+    Provides detailed productivity analysis for users.
+    """
+
+    user = graphene.Field(UserType)
+    total_assigned_tasks = graphene.Int()
+    completed_assigned_tasks = graphene.Int()
+    completion_rate = graphene.Float()
+    comments_made = graphene.Int()
+    projects_involved = graphene.Int()
+    average_completion_time_hours = graphene.Float()
+    recent_activity_count = graphene.Int()
+    productivity_score = graphene.Float()
+
+
+class ProjectHealthMetrics(graphene.ObjectType):
+    """
+    GraphQL type for project health analysis.
+
+    Provides comprehensive health assessment for projects.
+    """
+
+    project = graphene.Field(ProjectType)
+    health_score = graphene.Float()
+    completion_score = graphene.Float()
+    on_time_score = graphene.Float()
+    activity_score = graphene.Float()
+    overdue_penalty = graphene.Float()
+    recommendations = graphene.List(graphene.String)
+
+
+class AnalyticsSummary(graphene.ObjectType):
+    """
+    GraphQL type for analytics summary.
+
+    Provides high-level overview of organizational analytics.
+    """
+
+    total_projects = graphene.Int()
+    total_tasks = graphene.Int()
+    total_users = graphene.Int()
+    overall_project_completion_rate = graphene.Float()
+    overall_task_completion_rate = graphene.Float()
+    overdue_projects_percentage = graphene.Float()
+    overdue_tasks_percentage = graphene.Float()
+    productivity_score = graphene.Float()
+    generated_at = graphene.DateTime()
+
+
 # Enums for filtering and sorting
 class ProjectStatusEnum(graphene.Enum):
     """Enum for project status values."""
