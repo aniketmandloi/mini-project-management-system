@@ -120,7 +120,7 @@ def validate_project_input(input_data, existing_project=None):
         errors.append("Project description cannot exceed 2000 characters")
 
     # Validate status
-    valid_statuses = ["ACTIVE", "COMPLETED", "ON_HOLD", "CANCELLED"]
+    valid_statuses = ["PLANNING", "ACTIVE", "COMPLETED", "ON_HOLD", "CANCELLED"]
     status = input_data.get("status")
     if status and status not in valid_statuses:
         errors.append(
@@ -128,7 +128,7 @@ def validate_project_input(input_data, existing_project=None):
         )
 
     # Validate due date
-    due_date = input_data.get("due_date")
+    due_date = input_data.get("dueDate")
     if due_date:
         from django.utils import timezone
         from datetime import date

@@ -65,11 +65,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
    */
   const refreshToken = useCallback(async (): Promise<void> => {
     try {
-      const refreshToken = tokenManager.getRefreshToken();
+      const refreshTokenValue = tokenManager.getRefreshToken();
 
-      if (!refreshToken) {
+      if (!refreshTokenValue) {
+        console.error("AuthContext: No refresh token available");
         throw new Error("No refresh token available");
       }
+
+      console.log("AuthContext: Refreshing token using stored refresh token");
 
       // For now, we'll implement a simple fetch-based refresh
       const response = await fetch(
@@ -106,14 +109,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
             }
           `,
             variables: {
-              refreshToken,
+              refreshToken: refreshTokenValue,
             },
           }),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Network error");
+        console.error(
+          `AuthContext: Refresh token request failed with status ${response.status}: ${response.statusText}`
+        );
+        const errorText = await response.text().catch(() => "No response body");
+        console.error("AuthContext: Response body:", errorText);
+        throw new Error(
+          `Network error: ${response.status} ${response.statusText}`
+        );
       }
 
       const data = await response.json();
@@ -155,14 +165,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (!authUtils.isAuthenticated()) {
         // Try to refresh token if available
         if (authUtils.canRefreshToken()) {
+          console.log("AuthContext: Attempting token refresh...");
           await refreshToken();
         } else {
           // No valid authentication
+          console.log(
+            "AuthContext: No valid tokens available, user not authenticated"
+          );
           setUser(null);
           setIsLoading(false);
           setIsInitialized(true);
           return;
         }
+      } else {
+        console.log("AuthContext: User has valid access token");
       }
 
       // Get stored user data

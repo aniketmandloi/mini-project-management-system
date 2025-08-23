@@ -9,6 +9,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Layout } from "@/components/layout/Layout";
 import { ProtectedRoute } from "@/components/common/ProtectedRoute";
 import { ProjectOverview } from "@/components/dashboard/ProjectOverview";
@@ -19,6 +20,7 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const {
     data: dashboardData,
@@ -47,8 +49,7 @@ export default function DashboardPage() {
    * Handle project creation
    */
   const handleCreateProject = () => {
-    // TODO: Open project creation modal or navigate to create page
-    console.log("Create project clicked");
+    router.push("/projects/create");
   };
 
   /**

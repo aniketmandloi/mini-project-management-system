@@ -95,18 +95,8 @@ export const LOGOUT_MUTATION = gql`
 
 // Project Mutations
 export const CREATE_PROJECT_MUTATION = gql`
-  mutation CreateProject(
-    $name: String!
-    $description: String
-    $status: String!
-    $dueDate: String
-  ) {
-    createProject(
-      name: $name
-      description: $description
-      status: $status
-      dueDate: $dueDate
-    ) {
+  mutation CreateProject($input: ProjectInput!) {
+    createProject(input: $input) {
       project {
         id
         name
@@ -115,7 +105,7 @@ export const CREATE_PROJECT_MUTATION = gql`
         dueDate
         createdAt
         taskCount
-        completedTasks
+        completedTaskCount
         completionRate
         organization {
           id
@@ -123,29 +113,15 @@ export const CREATE_PROJECT_MUTATION = gql`
           slug
         }
       }
-      errors {
-        field
-        message
-      }
+      success
+      errors
     }
   }
 `;
 
 export const UPDATE_PROJECT_MUTATION = gql`
-  mutation UpdateProject(
-    $id: ID!
-    $name: String
-    $description: String
-    $status: String
-    $dueDate: String
-  ) {
-    updateProject(
-      id: $id
-      name: $name
-      description: $description
-      status: $status
-      dueDate: $dueDate
-    ) {
+  mutation UpdateProject($id: ID!, $input: ProjectInput!) {
+    updateProject(id: $id, input: $input) {
       project {
         id
         name
@@ -154,7 +130,7 @@ export const UPDATE_PROJECT_MUTATION = gql`
         dueDate
         createdAt
         taskCount
-        completedTasks
+        completedTaskCount
         completionRate
         organization {
           id
@@ -162,10 +138,8 @@ export const UPDATE_PROJECT_MUTATION = gql`
           slug
         }
       }
-      errors {
-        field
-        message
-      }
+      success
+      errors
     }
   }
 `;
@@ -174,32 +148,15 @@ export const DELETE_PROJECT_MUTATION = gql`
   mutation DeleteProject($id: ID!) {
     deleteProject(id: $id) {
       success
-      errors {
-        field
-        message
-      }
+      errors
     }
   }
 `;
 
 // Task Mutations
 export const CREATE_TASK_MUTATION = gql`
-  mutation CreateTask(
-    $title: String!
-    $description: String
-    $status: String!
-    $assigneeEmail: String
-    $dueDate: String
-    $projectId: ID!
-  ) {
-    createTask(
-      title: $title
-      description: $description
-      status: $status
-      assigneeEmail: $assigneeEmail
-      dueDate: $dueDate
-      projectId: $projectId
-    ) {
+  mutation CreateTask($input: TaskInput!) {
+    createTask(input: $input) {
       task {
         id
         title
@@ -224,22 +181,8 @@ export const CREATE_TASK_MUTATION = gql`
 `;
 
 export const UPDATE_TASK_MUTATION = gql`
-  mutation UpdateTask(
-    $id: ID!
-    $title: String
-    $description: String
-    $status: String
-    $assigneeEmail: String
-    $dueDate: String
-  ) {
-    updateTask(
-      id: $id
-      title: $title
-      description: $description
-      status: $status
-      assigneeEmail: $assigneeEmail
-      dueDate: $dueDate
-    ) {
+  mutation UpdateTask($id: ID!, $input: TaskInput!) {
+    updateTask(id: $id, input: $input) {
       task {
         id
         title
@@ -277,8 +220,8 @@ export const DELETE_TASK_MUTATION = gql`
 
 // Task Comment Mutations
 export const CREATE_COMMENT_MUTATION = gql`
-  mutation CreateComment($content: String!, $taskId: ID!) {
-    createComment(content: $content, taskId: $taskId) {
+  mutation CreateComment($input: TaskCommentInput!) {
+    createTaskComment(input: $input) {
       comment {
         id
         content
@@ -298,8 +241,8 @@ export const CREATE_COMMENT_MUTATION = gql`
 `;
 
 export const UPDATE_COMMENT_MUTATION = gql`
-  mutation UpdateComment($id: ID!, $content: String!) {
-    updateComment(id: $id, content: $content) {
+  mutation UpdateComment($id: ID!, $input: TaskCommentInput!) {
+    updateTaskComment(id: $id, input: $input) {
       comment {
         id
         content
@@ -320,7 +263,7 @@ export const UPDATE_COMMENT_MUTATION = gql`
 
 export const DELETE_COMMENT_MUTATION = gql`
   mutation DeleteComment($id: ID!) {
-    deleteComment(id: $id) {
+    deleteTaskComment(id: $id) {
       success
       errors {
         field
@@ -332,8 +275,8 @@ export const DELETE_COMMENT_MUTATION = gql`
 
 // Organization Mutations
 export const UPDATE_ORGANIZATION_MUTATION = gql`
-  mutation UpdateOrganization($id: ID!, $name: String, $contactEmail: String) {
-    updateOrganization(id: $id, name: $name, contactEmail: $contactEmail) {
+  mutation UpdateOrganization($id: ID!, $input: OrganizationInput!) {
+    updateOrganization(id: $id, input: $input) {
       organization {
         id
         name

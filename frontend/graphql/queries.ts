@@ -42,45 +42,42 @@ export const GET_ORGANIZATION = gql`
 // Project Queries
 export const GET_PROJECTS = gql`
   query GetProjects(
-    $organizationId: ID
-    $status: String
+    $filters: ProjectFilterInput
+    $sortBy: String
+    $sortOrder: SortOrder
     $first: Int
     $after: String
-    $orderBy: String
   ) {
     projects(
-      organizationId: $organizationId
-      status: $status
+      filters: $filters
+      sortBy: $sortBy
+      sortOrder: $sortOrder
       first: $first
       after: $after
-      orderBy: $orderBy
     ) {
       edges {
-        node {
+        id
+        name
+        description
+        status
+        dueDate
+        createdAt
+        taskCount
+        completedTaskCount
+        completionRate
+        organization {
           id
           name
-          description
-          status
-          dueDate
-          createdAt
-          taskCount
-          completedTasks
-          completionRate
-          organization {
-            id
-            name
-            slug
-          }
+          slug
         }
-        cursor
       }
       pageInfo {
         hasNextPage
         hasPreviousPage
         startCursor
         endCursor
-        totalCount
       }
+      totalCount
     }
   }
 `;
@@ -95,24 +92,12 @@ export const GET_PROJECT = gql`
       dueDate
       createdAt
       taskCount
-      completedTasks
+      completedTaskCount
       completionRate
       organization {
         id
         name
         slug
-      }
-      recentTasks: tasks(first: 5, orderBy: "-created_at") {
-        edges {
-          node {
-            id
-            title
-            status
-            assigneeEmail
-            dueDate
-            createdAt
-          }
-        }
       }
     }
   }
@@ -169,30 +154,27 @@ export const GET_TASKS = gql`
       orderBy: $orderBy
     ) {
       edges {
-        node {
+        id
+        title
+        description
+        status
+        assigneeEmail
+        dueDate
+        createdAt
+        commentCount
+        project {
           id
-          title
-          description
+          name
           status
-          assigneeEmail
-          dueDate
-          createdAt
-          commentCount
-          project {
-            id
-            name
-            status
-          }
         }
-        cursor
       }
       pageInfo {
         hasNextPage
         hasPreviousPage
         startCursor
         endCursor
-        totalCount
       }
+      totalCount
     }
   }
 `;
@@ -254,8 +236,8 @@ export const GET_TASK_WITH_COMMENTS = gql`
         }
         pageInfo {
           hasNextPage
-          totalCount
         }
+        totalCount
       }
     }
   }
@@ -276,25 +258,22 @@ export const GET_TASK_COMMENTS = gql`
       orderBy: $orderBy
     ) {
       edges {
-        node {
+        id
+        content
+        authorEmail
+        timestamp
+        task {
           id
-          content
-          authorEmail
-          timestamp
-          task {
-            id
-            title
-          }
+          title
         }
-        cursor
       }
       pageInfo {
         hasNextPage
         hasPreviousPage
         startCursor
         endCursor
-        totalCount
       }
+      totalCount
     }
   }
 `;
@@ -580,8 +559,8 @@ export const GET_ACTIVITY_FEED = gql`
         hasPreviousPage
         startCursor
         endCursor
-        totalCount
       }
+      totalCount
     }
   }
 `;

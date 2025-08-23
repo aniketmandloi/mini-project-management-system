@@ -24,7 +24,7 @@ export interface Project {
   createdAt: string;
   organization: Organization;
   taskCount?: number;
-  completedTasks?: number;
+  completedTaskCount?: number;
   completionRate?: number;
 }
 

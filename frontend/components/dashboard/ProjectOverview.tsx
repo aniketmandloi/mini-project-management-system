@@ -251,7 +251,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                 <div className="flex items-center justify-between text-xs text-gray-600">
                   <div className="flex items-center space-x-3">
                     <span>
-                      {project.completedTasks || 0}/{project.taskCount || 0}{" "}
+                      {project.completedTaskCount || 0}/{project.taskCount || 0}{" "}
                       tasks
                     </span>
                     {project.dueDate && (

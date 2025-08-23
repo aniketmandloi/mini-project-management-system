@@ -67,6 +67,7 @@ class Project(TimestampedModel):
     """
 
     STATUS_CHOICES = [
+        ("PLANNING", "Planning"),
         ("ACTIVE", "Active"),
         ("COMPLETED", "Completed"),
         ("ON_HOLD", "On Hold"),
@@ -86,7 +87,7 @@ class Project(TimestampedModel):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default="ACTIVE",
+        default="PLANNING",
         help_text="Current status of the project",
     )
     due_date = models.DateField(

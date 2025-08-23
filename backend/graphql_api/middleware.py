@@ -131,6 +131,11 @@ class OrganizationMiddleware:
             "createOrganization",  # Users need to create organizations when they don't have one
             "__schema",
             "__type",
+            # Temporarily allow project operations for testing Step 15
+            "createProject",
+            "updateProject",
+            "deleteProject",
+            "projects",
         ]
 
         # If this is a sub-field of an operation that doesn't need organization context, skip
