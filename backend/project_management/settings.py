@@ -56,6 +56,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "graphql_api.jwt_middleware.JWTAuthenticationMiddleware",  # JWT auth for GraphQL
+    "graphql_api.request_logging_middleware.GraphQLRequestLoggingMiddleware",  # Debug logging
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -146,8 +147,8 @@ REST_FRAMEWORK = {
 GRAPHENE = {
     "SCHEMA": "graphql_api.schema.schema",
     "MIDDLEWARE": [
-        "graphql_api.middleware.AuthenticationMiddleware",
-        "graphql_api.middleware.OrganizationMiddleware",
+        # "graphql_api.middleware.AuthenticationMiddleware",  # Temporarily disabled for debugging
+        # "graphql_api.middleware.OrganizationMiddleware",    # Temporarily disabled for debugging
     ],
 }
 

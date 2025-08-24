@@ -41,7 +41,7 @@ const generateMockDashboardData = (): DashboardData => {
           createdAt: "2023-01-01T00:00:00Z",
         },
         taskCount: 12,
-        completedTasks: 8,
+        completedTaskCount: 8,
         completionRate: 67,
       },
       {
@@ -59,7 +59,7 @@ const generateMockDashboardData = (): DashboardData => {
           createdAt: "2023-01-01T00:00:00Z",
         },
         taskCount: 25,
-        completedTasks: 15,
+        completedTaskCount: 15,
         completionRate: 60,
       },
       {
@@ -77,7 +77,7 @@ const generateMockDashboardData = (): DashboardData => {
           createdAt: "2023-01-01T00:00:00Z",
         },
         taskCount: 8,
-        completedTasks: 3,
+        completedTaskCount: 3,
         completionRate: 38,
       },
     ],

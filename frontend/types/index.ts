@@ -44,7 +44,7 @@ export interface UpdateProjectInput {
 }
 
 // Task types
-export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE" | "CANCELLED";
+export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
 
 export interface Task {
   id: string;

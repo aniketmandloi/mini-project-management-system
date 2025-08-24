@@ -35,7 +35,7 @@ export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const projectId = params.id as string;
+  const projectId = params?.id as string;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const {

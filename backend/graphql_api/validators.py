@@ -164,28 +164,28 @@ def validate_task_input(input_data, organization=None, existing_task=None):
     errors = []
 
     # Validate title
-    if not input_data.get("title") or not input_data["title"].strip():
+    if not input_data.title or not input_data.title.strip():
         errors.append("Task title is required")
-    elif len(input_data["title"].strip()) < 2:
+    elif len(input_data.title.strip()) < 2:
         errors.append("Task title must be at least 2 characters long")
-    elif len(input_data["title"].strip()) > 200:
+    elif len(input_data.title.strip()) > 200:
         errors.append("Task title cannot exceed 200 characters")
 
     # Validate description length
-    description = input_data.get("description", "")
+    description = input_data.description or ""
     if description and len(description) > 2000:
         errors.append("Task description cannot exceed 2000 characters")
 
     # Validate status
     valid_statuses = ["TODO", "IN_PROGRESS", "DONE"]
-    status = input_data.get("status")
+    status = input_data.status
     if status and status not in valid_statuses:
         errors.append(
             f"Invalid task status. Must be one of: {', '.join(valid_statuses)}"
         )
 
     # Validate assignee email
-    assignee_email = input_data.get("assignee_email", "").strip()
+    assignee_email = (input_data.assignee_email or "").strip()
     if assignee_email:
         try:
             validate_email(assignee_email)
@@ -201,7 +201,7 @@ def validate_task_input(input_data, organization=None, existing_task=None):
             errors.append("Invalid assignee email format")
 
     # Validate due date
-    due_date = input_data.get("due_date")
+    due_date = input_data.due_date
     if due_date:
         from django.utils import timezone
         from datetime import datetime

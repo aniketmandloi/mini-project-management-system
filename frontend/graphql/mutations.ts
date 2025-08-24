@@ -172,10 +172,8 @@ export const CREATE_TASK_MUTATION = gql`
           status
         }
       }
-      errors {
-        field
-        message
-      }
+      success
+      errors
     }
   }
 `;
@@ -198,10 +196,8 @@ export const UPDATE_TASK_MUTATION = gql`
           status
         }
       }
-      errors {
-        field
-        message
-      }
+      success
+      errors
     }
   }
 `;
@@ -210,10 +206,7 @@ export const DELETE_TASK_MUTATION = gql`
   mutation DeleteTask($id: ID!) {
     deleteTask(id: $id) {
       success
-      errors {
-        field
-        message
-      }
+      errors
     }
   }
 `;
@@ -309,10 +302,8 @@ export const BULK_UPDATE_TASKS_MUTATION = gql`
           name
         }
       }
-      errors {
-        field
-        message
-      }
+      success
+      errors
     }
   }
 `;

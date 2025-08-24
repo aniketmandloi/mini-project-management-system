@@ -138,20 +138,18 @@ export const GET_PROJECT_STATS = gql`
 // Task Queries
 export const GET_TASKS = gql`
   query GetTasks(
-    $projectId: ID
-    $status: String
-    $assigneeEmail: String
+    $filters: TaskFilterInput
+    $sortBy: String
+    $sortOrder: SortOrder
     $first: Int
     $after: String
-    $orderBy: String
   ) {
     tasks(
-      projectId: $projectId
-      status: $status
-      assigneeEmail: $assigneeEmail
+      filters: $filters
+      sortBy: $sortBy
+      sortOrder: $sortOrder
       first: $first
       after: $after
-      orderBy: $orderBy
     ) {
       edges {
         id

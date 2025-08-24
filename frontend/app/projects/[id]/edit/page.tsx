@@ -36,7 +36,7 @@ export default function EditProjectPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const projectId = params.id as string;
+  const projectId = params?.id as string;
   const [formErrors, setFormErrors] = useState<FormError[]>([]);
   const [generalError, setGeneralError] = useState<string | null>(null);
 
@@ -104,13 +104,7 @@ export default function EditProjectPage() {
       status: project.status,
       dueDate: project.dueDate,
     };
-  }, [
-    project?.id,
-    project?.name,
-    project?.description,
-    project?.status,
-    project?.dueDate,
-  ]);
+  }, [project]);
 
   /**
    * Handle form submission

@@ -9,6 +9,7 @@ import {
   createHttpLink,
   from,
   gql,
+  ApolloLink,
 } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
 import { onError } from "@apollo/client/link/error";
@@ -18,6 +19,7 @@ import { GraphQLError } from "graphql";
 // GraphQL endpoint - adjust based on your backend URL
 const GRAPHQL_ENDPOINT =
   process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || "http://localhost:8000/graphql/";
+
 
 /**
  * HTTP link for GraphQL requests
@@ -36,14 +38,26 @@ const authLink = setContext((_, { headers }) => {
 
   if (typeof window !== "undefined") {
     token = localStorage.getItem("accessToken");
+    console.log("🔑 AuthLink: Token found:", token ? "✅ Yes" : "❌ No");
+    if (token) {
+      console.log("🔑 AuthLink: Token length:", token.length);
+      console.log("🔑 AuthLink: Token preview:", token.substring(0, 50) + "...");
+    }
   }
 
+  const authHeaders = {
+    ...headers,
+    authorization: token ? `Bearer ${token}` : "",
+    "Content-Type": "application/json",
+  };
+
+  console.log("🔑 AuthLink: Headers being sent:", {
+    authorization: authHeaders.authorization ? "Bearer [TOKEN]" : "Not set",
+    "Content-Type": authHeaders["Content-Type"],
+  });
+
   return {
-    headers: {
-      ...headers,
-      authorization: token ? `Bearer ${token}` : "",
-      "Content-Type": "application/json",
-    },
+    headers: authHeaders,
   };
 });
 
@@ -51,6 +65,16 @@ const authLink = setContext((_, { headers }) => {
  * Error link for handling GraphQL and network errors
  */
 const errorLink = onError((errorHandler) => {
+  const { operation, response } = errorHandler;
+  
+  // Log all responses for debugging
+  console.log(`🔍 OPERATION: ${operation?.operationName}`, {
+    variables: operation?.variables,
+    hasResponse: !!response,
+    responseData: response?.data,
+    responseErrors: response?.errors,
+  });
+
   // Handle GraphQL errors
   const handler = errorHandler as unknown as Record<string, unknown>;
   if (handler.graphQLErrors && Array.isArray(handler.graphQLErrors)) {
@@ -147,9 +171,12 @@ const cache = new InMemoryCache({
         projects: {
           keyArgs: ["organizationId", "status"],
           merge(existing = { edges: [], pageInfo: {} }, incoming) {
+            if (!incoming || !incoming.edges) {
+              return existing;
+            }
             return {
               ...incoming,
-              edges: [...existing.edges, ...incoming.edges],
+              edges: [...(existing?.edges || []), ...incoming.edges],
               pageInfo: incoming.pageInfo,
             };
           },
@@ -158,9 +185,12 @@ const cache = new InMemoryCache({
         tasks: {
           keyArgs: ["projectId", "status", "assigneeEmail"],
           merge(existing = { edges: [], pageInfo: {} }, incoming) {
+            if (!incoming || !incoming.edges) {
+              return existing;
+            }
             return {
               ...incoming,
-              edges: [...existing.edges, ...incoming.edges],
+              edges: [...(existing?.edges || []), ...incoming.edges],
               pageInfo: incoming.pageInfo,
             };
           },
@@ -169,9 +199,12 @@ const cache = new InMemoryCache({
         taskComments: {
           keyArgs: ["taskId"],
           merge(existing = { edges: [], pageInfo: {} }, incoming) {
+            if (!incoming || !incoming.edges) {
+              return existing;
+            }
             return {
               ...incoming,
-              edges: [...existing.edges, ...incoming.edges],
+              edges: [...(existing?.edges || []), ...incoming.edges],
               pageInfo: incoming.pageInfo,
             };
           },

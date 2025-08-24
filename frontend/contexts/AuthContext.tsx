@@ -20,12 +20,7 @@ import {
   userManager,
   tokenRefresh,
 } from "../lib/auth";
-import {
-  LOGIN_MUTATION,
-  REGISTER_MUTATION,
-  LOGOUT_MUTATION,
-  REFRESH_TOKEN_MUTATION,
-} from "../graphql/mutations";
+import { LOGIN_MUTATION, REGISTER_MUTATION } from "../graphql/mutations";
 import type {
   User,
   AuthContextType,
@@ -57,8 +52,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Apollo mutations
   const [loginMutation] = useMutation(LOGIN_MUTATION);
   const [registerMutation] = useMutation(REGISTER_MUTATION);
-  const [logoutMutation] = useMutation(LOGOUT_MUTATION);
-  const [refreshTokenMutation] = useMutation(REFRESH_TOKEN_MUTATION);
 
   /**
    * Refresh authentication tokens
@@ -223,8 +216,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         const { data } = result;
 
-        if ((data as any)?.login) {
-          const loginResult = (data as any).login;
+        const typedData = data as {
+          login?: {
+            success: boolean;
+            accessToken: string;
+            refreshToken: string;
+            user: User;
+            errors?: Array<{ message: string }>;
+          };
+        };
+        if (typedData?.login) {
+          const loginResult = typedData.login;
           console.log("Login result:", loginResult);
 
           if (loginResult.success) {
@@ -263,19 +265,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
           console.error("Login failed - full result:", result);
           throw new Error("Login failed - no data received");
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Login error:", error);
 
         // Handle GraphQL errors
-        if (error.graphQLErrors && error.graphQLErrors.length > 0) {
-          const graphQLError = error.graphQLErrors[0];
-          throw new Error(graphQLError.message || "Login failed");
-        } else if (error.networkError) {
+        const typedError = error as {
+          graphQLErrors?: Array<{ message: string }>;
+          networkError?: unknown;
+          message?: string;
+        };
+        if (typedError.graphQLErrors && typedError.graphQLErrors.length > 0) {
+          const firstGraphQLError = typedError.graphQLErrors[0];
+          throw new Error(firstGraphQLError.message || "Login failed");
+        } else if (typedError.networkError) {
           throw new Error(
             "Network error. Please check your connection and try again."
           );
-        } else if (error.message) {
-          throw new Error(error.message);
+        } else if (typedError.message) {
+          throw new Error(typedError.message);
         } else {
           throw new Error("An unexpected error occurred during login");
         }
@@ -311,22 +318,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         const { data } = result;
 
-        if ((data as any)?.register) {
-          const registerResult = (data as any).register;
+        const typedData = data as {
+          register?: {
+            success: boolean;
+            user: User;
+            accessToken?: string;
+            refreshToken?: string;
+            errors?: Array<{ message: string }>;
+          };
+        };
+        if (typedData?.register) {
+          const registerResult = typedData.register;
 
           if (registerResult.success) {
-            const tokens = {
-              accessToken: registerResult.accessToken,
-              refreshToken: registerResult.refreshToken,
-            };
             const userData = registerResult.user;
 
-            // Store authentication data
-            authUtils.setAuthData(tokens, userData);
-            setUser(userData);
+            // If registration provides tokens, store them. Otherwise, user needs to login.
+            if (registerResult.accessToken && registerResult.refreshToken) {
+              const tokens = {
+                accessToken: registerResult.accessToken,
+                refreshToken: registerResult.refreshToken,
+              };
+              authUtils.setAuthData(tokens, userData);
+              setUser(userData);
+            } else {
+              // Registration successful but no tokens provided - user needs to login
+              setUser(null);
+            }
           } else {
             throw new Error(
-              registerResult.errors?.join(", ") || "Registration failed"
+              registerResult.errors?.[0]?.message || "Registration failed"
             );
           }
 
@@ -339,19 +360,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
           console.error("Registration failed - full result:", result);
           throw new Error("Registration failed - no data received");
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Registration error:", error);
 
         // Handle GraphQL errors
-        if (error.graphQLErrors && error.graphQLErrors.length > 0) {
-          const graphQLError = error.graphQLErrors[0];
-          throw new Error(graphQLError.message || "Registration failed");
-        } else if (error.networkError) {
+        const typedError = error as {
+          graphQLErrors?: Array<{ message: string }>;
+          networkError?: unknown;
+          message?: string;
+        };
+        if (typedError.graphQLErrors && typedError.graphQLErrors.length > 0) {
+          const firstGraphQLError = typedError.graphQLErrors[0];
+          throw new Error(firstGraphQLError.message || "Registration failed");
+        } else if (typedError.networkError) {
           throw new Error(
             "Network error. Please check your connection and try again."
           );
-        } else if (error.message) {
-          throw new Error(error.message);
+        } else if (typedError.message) {
+          throw new Error(typedError.message);
         } else {
           throw new Error("An unexpected error occurred during registration");
         }

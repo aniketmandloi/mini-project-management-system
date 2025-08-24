@@ -50,7 +50,7 @@ export function useAuth(options: UseAuthArgs = {}) {
         throw error;
       }
     },
-    [authContext, router, redirectOnSuccess]
+    [authContext, redirectOnSuccess]
   );
 
   /**
@@ -148,7 +148,7 @@ export function useAuth(options: UseAuthArgs = {}) {
    * Check if user has a specific permission (placeholder for future role-based auth)
    */
   const hasPermission = useCallback(
-    (permission: string): boolean => {
+    (_permission: string): boolean => {
       // For now, all authenticated users have all permissions
       // This can be extended later with role-based permissions
       return authContext.isAuthenticated;

@@ -61,7 +61,13 @@ export default function ProjectListPage() {
   const filteredProjects = useMemo(() => {
     if (!projects) return [];
 
-    const filtered = projects.filter((project: Project) => {
+    // Remove duplicates first by creating a Map with project ID as key
+    const uniqueProjects = new Map(projects.map(project => [project.id, project]));
+    const deduplicatedProjects = Array.from(uniqueProjects.values());
+    
+    console.log(`📊 Projects: Original: ${projects.length}, After deduplication: ${deduplicatedProjects.length}`);
+
+    const filtered = deduplicatedProjects.filter((project: Project) => {
       const searchLower = searchQuery.toLowerCase();
       return (
         project.name.toLowerCase().includes(searchLower) ||
@@ -396,9 +402,9 @@ export default function ProjectListPage() {
                       : "space-y-4"
                   }
                 >
-                  {filteredProjects.map((project) => (
+                  {filteredProjects.map((project, index) => (
                     <ProjectCard
-                      key={project.id}
+                      key={`${project.id}-${index}`}
                       project={project}
                       view={view}
                       onDelete={handleProjectDelete}

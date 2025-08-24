@@ -79,6 +79,12 @@ class OrganizationType(DjangoObjectType):
     active_project_count = graphene.Int()
     task_count = graphene.Int()
     completed_task_count = graphene.Int()
+    
+    # Frontend compatibility aliases
+    contactEmail = graphene.String(description="Contact email (camelCase alias)")
+    createdAt = graphene.DateTime(description="Created at (camelCase alias)")
+    userCount = graphene.Int(description="User count (camelCase alias)")
+    projectCount = graphene.Int(description="Project count (camelCase alias)")
 
     def resolve_user_count(self, info):
         """Return the total number of users in this organization."""
@@ -99,6 +105,22 @@ class OrganizationType(DjangoObjectType):
     def resolve_completed_task_count(self, info):
         """Return the number of completed tasks across all projects in this organization."""
         return Task.objects.filter(project__organization=self, status="DONE").count()
+        
+    def resolve_contactEmail(self, info):
+        """Return contact_email in camelCase for frontend compatibility."""
+        return self.contact_email
+        
+    def resolve_createdAt(self, info):
+        """Return created_at in camelCase for frontend compatibility."""
+        return self.created_at
+        
+    def resolve_userCount(self, info):
+        """Return user_count in camelCase for frontend compatibility."""
+        return self.users.count()
+        
+    def resolve_projectCount(self, info):
+        """Return project_count in camelCase for frontend compatibility."""
+        return self.projects.count()
 
 
 class ProjectType(DjangoObjectType):
@@ -130,8 +152,12 @@ class ProjectType(DjangoObjectType):
     completion_rate = graphene.Float()
     is_overdue = graphene.Boolean()
     days_remaining = graphene.Int()
-    # Frontend compatibility alias
+    # Frontend compatibility aliases
     dueDate = graphene.Date(description="Due date (camelCase alias)")
+    createdAt = graphene.DateTime(description="Created at (camelCase alias)")
+    taskCount = graphene.Int(description="Task count (camelCase alias)")
+    completedTaskCount = graphene.Int(description="Completed task count (camelCase alias)")
+    completionRate = graphene.Float(description="Completion rate (camelCase alias)")
 
     def resolve_status(self, info):
         """Return the project status as a string."""
@@ -186,6 +212,26 @@ class ProjectType(DjangoObjectType):
     def resolve_dueDate(self, info):
         """Return due_date in camelCase for frontend compatibility."""
         return self.due_date
+        
+    def resolve_createdAt(self, info):
+        """Return created_at in camelCase for frontend compatibility."""
+        return self.created_at
+        
+    def resolve_taskCount(self, info):
+        """Return task_count in camelCase for frontend compatibility."""
+        return self.tasks.count()
+        
+    def resolve_completedTaskCount(self, info):
+        """Return completed_task_count in camelCase for frontend compatibility."""
+        return self.tasks.filter(status="DONE").count()
+        
+    def resolve_completionRate(self, info):
+        """Return completion_rate in camelCase for frontend compatibility."""
+        total_tasks = self.tasks.count()
+        if total_tasks == 0:
+            return 0.0
+        completed_tasks = self.tasks.filter(status="DONE").count()
+        return (completed_tasks / total_tasks) * 100.0
 
 
 class TaskType(DjangoObjectType):
@@ -215,8 +261,24 @@ class TaskType(DjangoObjectType):
     assignee = graphene.Field(UserType)
     days_remaining = graphene.Int()
     hours_remaining = graphene.Int()
-    # Frontend compatibility alias
+    # Frontend compatibility aliases
     dueDate = graphene.DateTime(description="Due date (camelCase alias)")
+    createdAt = graphene.DateTime(description="Created at (camelCase alias)")
+    assigneeEmail = graphene.String(description="Assignee email (camelCase alias)")
+    commentCount = graphene.Int(description="Comment count (camelCase alias)")
+
+    def resolve_status(self, info):
+        """Return the task status as a string."""
+        # Handle both string and enum cases
+        status = self.status
+        if hasattr(status, "value"):
+            return status.value
+        elif hasattr(status, "name"):
+            return status.name
+        elif isinstance(status, str) and status.startswith("EnumMeta."):
+            # Handle stored enum values like "EnumMeta.TODO"
+            return status.split(".")[-1]
+        return str(status)
 
     def resolve_comment_count(self, info):
         """Return the number of comments on this task."""
@@ -258,6 +320,18 @@ class TaskType(DjangoObjectType):
     def resolve_dueDate(self, info):
         """Return due_date in camelCase for frontend compatibility."""
         return self.due_date
+        
+    def resolve_createdAt(self, info):
+        """Return created_at in camelCase for frontend compatibility."""
+        return self.created_at
+        
+    def resolve_assigneeEmail(self, info):
+        """Return assignee_email in camelCase for frontend compatibility."""
+        return self.assignee_email
+        
+    def resolve_commentCount(self, info):
+        """Return comment_count in camelCase for frontend compatibility."""
+        return self.comments.count()
 
 
 class TaskCommentType(DjangoObjectType):
